@@ -51,8 +51,8 @@ jobs:
           set -uo pipefail
           mkdir -p game && cd game
           # Link against the exact release the player runs, so every symbol we use exists in it.
-          if gh release download "$DUSKLIGHT_REF" -R TwilitRealm/dusklight -p '*macos*' 2>/dev/null \
-             || gh release download "$DUSKLIGHT_REF" -R TwilitRealm/dusklight -p '*mac*' 2>/dev/null; then
+          # Only the Apple Silicon build: the release also ships an x86_64 zip that would overwrite it.
+          if gh release download "$DUSKLIGHT_REF" -R TwilitRealm/dusklight -p '*macos-arm64*'; then
             ls -la
             for f in *; do
               case "$f" in
