@@ -1,0 +1,114 @@
+name: Build iOS IPA
+
+# Builds Dusklight (pinned to the version installed on the iPad) with TP Compass bundled inside,
+# then publishes an unsigned IPA as a GitHub pre-release so it can be downloaded on the iPad
+# and signed/installed with Signulous.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: 'Bundle ID override (leave empty to keep dev.twilitrealm.dusk)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ios
+  cancel-in-progress: true
+
+env:
+  DUSKLIGHT_REF: v2.0.3
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+
+jobs:
+  build-ios:
+    name: Dusklight + TP Compass (iOS arm64)
+    runs-on: macos-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout mod
+        uses: actions/checkout@v6
+        with:
+          path: mod
+
+      - name: Checkout Dusklight ${{ env.DUSKLIGHT_REF }}
+        uses: actions/checkout@v6
+        with:
+          repository: TwilitRealm/dusklight
+          ref: ${{ env.DUSKLIGHT_REF }}
+          path: dusklight
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Inject mod into the Dusklight tree
+        run: bash mod/ci/inject.sh "$GITHUB_WORKSPACE/mod" "$GITHUB_WORKSPACE/dusklight" "${{ github.event.inputs.bundle_id }}"
+
+      - name: Install dependencies
+        run: brew install cmake ninja
+
+      - name: Install Rust iOS target
+        run: |
+          rustup toolchain install stable
+          rustup target add aarch64-apple-ios
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Configure
+        working-directory: dusklight
+        run: cmake --preset x-ios-ci -DTP_COMPASS_BUNDLE=ON
+
+      - name: Build
+        working-directory: dusklight
+        run: cmake --build --preset x-ios-ci
+
+      - name: Package IPA
+        id: package
+        run: |
+          set -euo pipefail
+          APP="dusklight/build/install/Dusklight.app"
+          test -d "$APP"
+          echo "Bundled mod files:"
+          ls -la "$APP/Frameworks" | grep -i compass || { echo "tp_compass not bundled!"; exit 1; }
+          ls -la "$APP/mods" || true
+          SHORT_SHA="${GITHUB_SHA::7}"
+          NAME="Dusklight-${DUSKLIGHT_REF}-TPCompass-${SHORT_SHA}.ipa"
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          (cd out && zip -qry "../$NAME" Payload)
+          echo "ipa=$NAME" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          ls -lh "$NAME"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.ipa }}
+          path: ${{ steps.package.outputs.ipa }}
+
+      - name: Publish pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "TP Compass build ${{ github.run_number }} (${{ steps.package.outputs.short_sha }})"
+          prerelease: true
+          files: ${{ steps.package.outputs.ipa }}
+          body: |
+            Dusklight ${{ env.DUSKLIGHT_REF }} con TP Compass incluido.
+
+            Commit: ${{ github.sha }}
+
+            Instalación en el iPad:
+            1. Descargá el `.ipa` desde Safari.
+            2. Subilo a Signulous y firmalo.
+            3. Instalá. Si aparece un segundo ícono de Dusklight, el bundle ID no coincide (avisale a Claude).
+            4. En Dusklight: Mods → TP Compass → activalo.
