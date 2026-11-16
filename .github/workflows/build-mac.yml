@@ -67,7 +67,7 @@ jobs:
             EXE=$(find "$PWD" -path '*Dusklight.app/Contents/MacOS/Dusklight' -type f | head -1)
           fi
           if [ -n "${EXE:-}" ]; then
-            echo "Linking against $EXE"
+            echo "::notice::Linking against $EXE"
             echo "exe=$EXE" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::Could not get the $DUSKLIGHT_REF macOS app; falling back to the SDK link stub"
@@ -87,7 +87,15 @@ jobs:
             -DDUSK_DIR="$GITHUB_WORKSPACE/dusklight" "${EXTRA[@]}"
 
       - name: Build
-        run: cmake --build build
+        run: |
+          set -o pipefail
+          if ! cmake --build build 2>&1 | tee build.log; then
+            # Surface the first errors as annotations so they are visible without logs access.
+            grep -E "error|Error|undefined" build.log | head -25 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            exit 1
+          fi
 
       - name: Package
         id: package
