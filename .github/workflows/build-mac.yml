@@ -1,0 +1,124 @@
+name: Build .dusk (macOS)
+
+# Builds the mod as a regular .dusk package for Dusklight on Apple Silicon Macs.
+# On macOS native mods load straight from the .dusk (drag it onto the game window).
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-mac
+  cancel-in-progress: true
+
+env:
+  DUSKLIGHT_REF: v2.0.3
+
+jobs:
+  build-mac:
+    name: TP Compass .dusk (macOS arm64)
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout mod
+        uses: actions/checkout@v6
+        with:
+          path: mod
+
+      - name: Checkout Dusklight ${{ env.DUSKLIGHT_REF }} (SDK)
+        uses: actions/checkout@v6
+        with:
+          repository: TwilitRealm/dusklight
+          ref: ${{ env.DUSKLIGHT_REF }}
+          path: dusklight
+
+      - name: Fetch SDK submodules
+        working-directory: dusklight
+        run: git submodule update --init --depth 1 extern/aurora
+
+      - name: Get the ${{ env.DUSKLIGHT_REF }} game binary to link against
+        id: game
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          mkdir -p game && cd game
+          # Link against the exact release the player runs, so every symbol we use exists in it.
+          if gh release download "$DUSKLIGHT_REF" -R TwilitRealm/dusklight -p '*macos*' 2>/dev/null \
+             || gh release download "$DUSKLIGHT_REF" -R TwilitRealm/dusklight -p '*mac*' 2>/dev/null; then
+            ls -la
+            for f in *; do
+              case "$f" in
+                *.dmg)
+                  hdiutil attach -nobrowse -readonly -mountpoint "$PWD/dmg" "$f" >/dev/null
+                  cp -R dmg/*.app . 2>/dev/null || true
+                  hdiutil detach "$PWD/dmg" >/dev/null || true ;;
+                *.zip) ditto -x -k "$f" . ;;
+                *.tar.*|*.tgz) tar -xf "$f" ;;
+              esac
+            done
+            EXE=$(find "$PWD" -path '*Dusklight.app/Contents/MacOS/Dusklight' -type f | head -1)
+          fi
+          if [ -n "${EXE:-}" ]; then
+            echo "Linking against $EXE"
+            echo "exe=$EXE" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not get the $DUSKLIGHT_REF macOS app; falling back to the SDK link stub"
+          fi
+
+      - name: Install dependencies
+        run: brew install cmake ninja
+
+      - name: Configure
+        run: |
+          EXTRA=()
+          if [ -n "${{ steps.game.outputs.exe }}" ]; then
+            EXTRA+=("-DDUSK_GAME_EXE=${{ steps.game.outputs.exe }}")
+          fi
+          cmake -S mod -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DDUSK_DIR="$GITHUB_WORKSPACE/dusklight" "${EXTRA[@]}"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Package
+        id: package
+        run: |
+          set -euo pipefail
+          SRC=$(find build -name 'tp_compass.dusk' | head -1)
+          test -f "$SRC"
+          unzip -l "$SRC"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          NAME="tp_compass-macos-arm64-${SHORT_SHA}.dusk"
+          cp "$SRC" "$NAME"
+          echo "file=$NAME" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.file }}
+          path: ${{ steps.package.outputs.file }}
+
+      - name: Publish pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mac-build-${{ github.run_number }}
+          name: "TP Compass para Mac — build ${{ github.run_number }} (${{ steps.package.outputs.short_sha }})"
+          prerelease: true
+          files: ${{ steps.package.outputs.file }}
+          body: |
+            Mod TP Compass para Dusklight ${{ env.DUSKLIGHT_REF }} en Mac (Apple Silicon).
+
+            Commit: ${{ github.sha }}
+
+            Instalación: abrí Dusklight y arrastrá el `.dusk` a la ventana del juego.
+            Después: Mods → TP Compass → activalo.
