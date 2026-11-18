@@ -2,6 +2,8 @@
 
 #include <mods/svc/log.hpp>
 
+#include <dolphin/pad.h>
+
 namespace compass {
 
 Settings g_settings;
@@ -54,6 +56,14 @@ ModResult registerSettings() {
     if ((r = regInt("arcDegrees", d.arcDegrees, &h.arcDegrees)) != MOD_OK) return r;
     if ((r = regInt("northOffset", d.northOffset, &h.northOffset)) != MOD_OK) return r;
     if ((r = regBool("invertDirection", d.invertDirection, &h.invertDirection)) != MOD_OK) return r;
+    if ((r = regBool("pinHotkey", d.pinHotkey, &h.pinHotkey)) != MOD_OK) return r;
+    if ((r = regInt("pinModifier", d.pinModifier, &h.pinModifier)) != MOD_OK) return r;
+    if ((r = regInt("pinButton", d.pinButton, &h.pinButton)) != MOD_OK) return r;
+    if ((r = regBool("showChests", d.showChests, &h.showChests)) != MOD_OK) return r;
+    if ((r = regBool("chestsNeedCompass", d.chestsNeedCompass, &h.chestsNeedCompass)) != MOD_OK) return r;
+    if ((r = regBool("showLocation", d.showLocation, &h.showLocation)) != MOD_OK) return r;
+    if ((r = regInt("locationX", d.locationX, &h.locationX)) != MOD_OK) return r;
+    if ((r = regInt("locationY", d.locationY, &h.locationY)) != MOD_OK) return r;
     refreshSettings();
     return MOD_OK;
 }
@@ -70,6 +80,14 @@ void refreshSettings() {
     readInt(h.arcDegrees, s.arcDegrees);
     readInt(h.northOffset, s.northOffset);
     readBool(h.invertDirection, s.invertDirection);
+    readBool(h.pinHotkey, s.pinHotkey);
+    readInt(h.pinModifier, s.pinModifier);
+    readInt(h.pinButton, s.pinButton);
+    readBool(h.showChests, s.showChests);
+    readBool(h.chestsNeedCompass, s.chestsNeedCompass);
+    readBool(h.showLocation, s.showLocation);
+    readInt(h.locationX, s.locationX);
+    readInt(h.locationY, s.locationY);
 }
 
 float northOffsetDegrees() {
@@ -79,6 +97,18 @@ float northOffsetDegrees() {
         i = 0;
     }
     return kOffsets[i];
+}
+
+uint32_t pinModifierMask() {
+    static constexpr uint32_t kMods[] = {0, PAD_TRIGGER_Z, PAD_TRIGGER_R, PAD_TRIGGER_L};
+    int64_t i = g_settings.pinModifier;
+    return (i >= 0 && i < 4) ? kMods[i] : 0;
+}
+
+uint32_t pinButtonMask() {
+    static constexpr uint32_t kButtons[] = {PAD_BUTTON_LEFT, PAD_BUTTON_RIGHT, PAD_BUTTON_DOWN, PAD_BUTTON_UP};
+    int64_t i = g_settings.pinButton;
+    return (i >= 0 && i < 4) ? kButtons[i] : PAD_BUTTON_LEFT;
 }
 
 }  // namespace compass

@@ -1,6 +1,8 @@
 #include "compass_draw.hpp"
 
+#include "chests.hpp"
 #include "game_state.hpp"
+#include "location.hpp"
 #include "pins.hpp"
 #include "settings.hpp"
 
@@ -191,9 +193,35 @@ bool projectBearing(const Layout& l, float bearing, float& outX, float& edgeFade
     return true;
 }
 
+// Brown chest box with a gold lid line, like the dungeon map icons.
+void chestIcon(float cx, float cy, float alphaFactor) {
+    const float hw = 4.5f, hh = 3.5f;
+    rect(cx - hw - 1.0f, cy - hh - 1.0f, cx + hw + 1.0f, cy + hh + 1.0f,
+        GXColor{20, 12, 4, scaleAlpha(210.0f, alphaFactor)});
+    rect(cx - hw, cy - hh, cx + hw, cy + hh, GXColor{150, 92, 38, scaleAlpha(255.0f, alphaFactor)});
+    rect(cx - hw, cy - 0.75f, cx + hw, cy + 0.75f, GXColor{238, 196, 72, scaleAlpha(255.0f, alphaFactor)});
+    rect(cx - 0.9f, cy - 1.6f, cx + 0.9f, cy + 1.6f, GXColor{238, 196, 72, scaleAlpha(255.0f, alphaFactor)});
+}
+
+void drawText(JUTFont* font, const char* text, float x, float baseline, float size, u8 r, u8 g, u8 b,
+    u8 alpha)
+{
+    // Soft shadow first so the text reads on any background.
+    font->setCharColor(JUtility::TColor(0, 0, 0, static_cast<u8>(alpha * 0.8f)));
+    font->drawString_scale(x + 1.5f, baseline + 1.5f, size, size, text, true);
+    font->setCharColor(JUtility::TColor(r, g, b, alpha));
+    font->drawString_scale(x, baseline, size, size, text, true);
+}
+
 class CompassDlst : public dDlst_base_c {
 public:
     void draw() override;
+    bool drawCompass = false;
+    bool drawLocation = false;
+
+private:
+    void drawBar();
+    void drawLocationName();
 };
 
 CompassDlst g_dlst;
@@ -204,7 +232,29 @@ void CompassDlst::draw() {
         return;
     }
     port->setup2D();
+    if (drawCompass) {
+        drawBar();
+        port->setup2D();
+    }
+    if (drawLocation) {
+        drawLocationName();
+        port->setup2D();
+    }
+}
 
+void CompassDlst::drawLocationName() {
+    const char* name = currentLocationName();
+    JUTFont* font = mDoExt_getMesgFont();
+    if (name == nullptr || font == nullptr) {
+        return;
+    }
+    const float x = mDoGph_gInf_c::getSafeMinXF() + static_cast<float>(g_settings.locationX);
+    const float baseline = mDoGph_gInf_c::getSafeMaxYF() - static_cast<float>(g_settings.locationY);
+    font->setGX();
+    drawText(font, name, x, baseline, 15.0f, 255, 255, 255, scaleAlpha(240.0f, 1.0f));
+}
+
+void CompassDlst::drawBar() {
     const Layout l = computeLayout();
     const float midY = (l.top + l.bottom) * 0.5f;
 
@@ -226,6 +276,18 @@ void CompassDlst::draw() {
         }
         rect(x - 0.5f, l.bottom - 5.0f, x + 0.5f, l.bottom - 1.0f,
             GXColor{255, 255, 255, scaleAlpha(140.0f, fade)});
+    }
+
+    // Unopened chests (behind pins so a pin on a chest stays visible).
+    {
+        static Marker chests[kMaxChestMarkers];
+        const size_t n = collectChestMarkers(chests, kMaxChestMarkers);
+        for (size_t i = 0; i < n; ++i) {
+            float x, fade;
+            if (projectBearing(l, chests[i].bearing, x, fade)) {
+                chestIcon(x, midY, fade);
+            }
+        }
     }
 
     // Player pins (white diamonds), only for the stage we're in.
@@ -275,12 +337,13 @@ void CompassDlst::draw() {
         }
     }
 
-    // Restore the standard 2D state for whatever draws next.
-    port->setup2D();
 }
 
 void onMeterDrawPost(ModContext*, void*, void*, void*) {
-    if (shouldDrawCompass()) {
+    g_dlst.drawCompass = shouldDrawCompass();
+    g_dlst.drawLocation = g_settings.showLocation && g_state.hasPlayer && !g_state.eventRunning &&
+                          g_state.windowStatus == 0;
+    if (g_dlst.drawCompass || g_dlst.drawLocation) {
         dComIfGd_set2DOpa(&g_dlst);
     }
 }

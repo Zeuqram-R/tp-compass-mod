@@ -30,6 +30,9 @@ void reportPinResult(PinResult r, const char* okMessage) {
     case PinResult::Ok:
         toast("TP Compass", okMessage);
         break;
+    case PinResult::Removed:
+        toast("TP Compass", "Marca quitada.");
+        break;
     case PinResult::NoSave:
         toast("TP Compass", "Cargá una partida primero.");
         break;
@@ -44,6 +47,14 @@ void reportPinResult(PinResult r, const char* okMessage) {
         break;
     }
 }
+
+}  // namespace
+
+void notifyHotkeyPinResult(PinResult r) {
+    reportPinResult(r, "Marca puesta.");
+}
+
+namespace {
 
 void onAddPin(ModContext*, void*) {
     reportPinResult(addPinAtPlayer(), "Marca guardada. Se guarda en tu partida al salvar el juego.");
@@ -81,6 +92,19 @@ ModResult addNumber(UiElementHandle pane, const char* label, ConfigVarHandle var
     return svc_ui->pane_add_control(mod_ctx, pane, &c, nullptr);
 }
 
+ModResult addDropdown(UiElementHandle pane, const char* label, ConfigVarHandle var,
+    const char* const* options, uint32_t count)
+{
+    UiControlDesc c = UI_CONTROL_DESC_INIT;
+    c.kind = UI_CONTROL_DROPDOWN;
+    c.label = label;
+    c.binding = UI_BINDING_CONFIG_VAR;
+    c.config_var = var;
+    c.options = options;
+    c.option_count = count;
+    return svc_ui->pane_add_control(mod_ctx, pane, &c, nullptr);
+}
+
 ModResult addButton(UiElementHandle pane, const char* label, UiPressedFn fn) {
     UiControlDesc c = UI_CONTROL_DESC_INIT;
     c.kind = UI_CONTROL_BUTTON;
@@ -106,18 +130,32 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
     if ((r = addButton(panel, "Borrar marcas de esta zona", onClearStage)) != MOD_OK) return r;
     if ((r = addButton(panel, "Borrar todas las marcas", onClearAll)) != MOD_OK) return r;
     svc_ui->pane_add_text(mod_ctx, panel, "", &g_pinCountText);
+    if ((r = addToggle(panel, "Atajo de control para marcas", h.pinHotkey)) != MOD_OK) return r;
+    {
+        static const char* const kMods[] = {"Ninguno", "Z", "R", "L"};
+        static const char* const kButtons[] = {"Cruceta izquierda", "Cruceta derecha", "Cruceta abajo",
+            "Cruceta arriba"};
+        if ((r = addDropdown(panel, "Botón que mantenés", h.pinModifier, kMods, 4)) != MOD_OK) return r;
+        if ((r = addDropdown(panel, "Botón que presionás", h.pinButton, kButtons, 4)) != MOD_OK) return r;
+    }
+    svc_ui->pane_add_text(mod_ctx, panel,
+        "Lejos de una marca: pone una nueva. Encima de una: la quita. Los nombres son los del "
+        "control de GameCube (en tu control pueden llamarse distinto).",
+        nullptr);
+
+    svc_ui->pane_add_section(mod_ctx, panel, "Cofres");
+    if ((r = addToggle(panel, "Mostrar cofres sin abrir", h.showChests)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Solo si tenés la brújula del dungeon", h.chestsNeedCompass)) != MOD_OK) return r;
+
+    svc_ui->pane_add_section(mod_ctx, panel, "Nombre del lugar");
+    if ((r = addToggle(panel, "Mostrar nombre del lugar", h.showLocation)) != MOD_OK) return r;
+    if ((r = addNumber(panel, "Distancia desde la izquierda", h.locationX, 0, 500, 4, "")) != MOD_OK) return r;
+    if ((r = addNumber(panel, "Distancia desde abajo", h.locationY, 0, 400, 4, "")) != MOD_OK) return r;
 
     svc_ui->pane_add_section(mod_ctx, panel, "Calibración");
     {
         static const char* const kNorth[] = {"0°", "90°", "180°", "270°"};
-        UiControlDesc c = UI_CONTROL_DESC_INIT;
-        c.kind = UI_CONTROL_DROPDOWN;
-        c.label = "Dirección del norte";
-        c.binding = UI_BINDING_CONFIG_VAR;
-        c.config_var = h.northOffset;
-        c.options = kNorth;
-        c.option_count = 4;
-        if ((r = svc_ui->pane_add_control(mod_ctx, panel, &c, nullptr)) != MOD_OK) return r;
+        if ((r = addDropdown(panel, "Dirección del norte", h.northOffset, kNorth, 4)) != MOD_OK) return r;
     }
     if ((r = addToggle(panel, "Invertir izquierda/derecha", h.invertDirection)) != MOD_OK) return r;
 

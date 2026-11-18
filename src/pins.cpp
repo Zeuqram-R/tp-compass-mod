@@ -84,6 +84,36 @@ PinResult addPinAtPlayer() {
     return store();
 }
 
+PinResult togglePinAtPlayer() {
+    if (!g_state.hasPlayer || g_state.stage[0] == '\0') {
+        return PinResult::NoPlayer;
+    }
+    int best = -1;
+    float bestDist2 = kPinToggleRadius * kPinToggleRadius;
+    for (uint32_t i = 0; i < g_pins.count; ++i) {
+        const Pin& p = g_pins.pins[i];
+        if (!sameStage(p, g_state.stage)) {
+            continue;
+        }
+        const float dx = p.x - g_state.x, dy = p.y - g_state.y, dz = p.z - g_state.z;
+        const float d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 <= bestDist2) {
+            bestDist2 = d2;
+            best = static_cast<int>(i);
+        }
+    }
+    if (best < 0) {
+        return addPinAtPlayer();
+    }
+    for (uint32_t i = static_cast<uint32_t>(best); i + 1 < g_pins.count; ++i) {
+        g_pins.pins[i] = g_pins.pins[i + 1];
+    }
+    --g_pins.count;
+    mods::log::info("pin removed in {}", g_state.stage);
+    PinResult r = store();
+    return r == PinResult::Ok ? PinResult::Removed : r;
+}
+
 PinResult clearPinsInCurrentStage() {
     uint32_t kept = 0;
     for (uint32_t i = 0; i < g_pins.count; ++i) {

@@ -25,9 +25,12 @@ extern PinStore g_pins;
 void initPins();
 
 // Results used by the UI to show feedback.
-enum class PinResult { Ok, NoSave, NoPlayer, Full, Nothing };
+enum class PinResult { Ok, Removed, NoSave, NoPlayer, Full, Nothing };
 
 PinResult addPinAtPlayer();
+// Removes the closest pin within kPinToggleRadius of the player, otherwise adds one.
+PinResult togglePinAtPlayer();
+constexpr float kPinToggleRadius = 300.0f;
 PinResult clearPinsInCurrentStage();
 PinResult clearAllPins();
 

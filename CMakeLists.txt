@@ -31,6 +31,9 @@ add_mod(tp_compass
         src/pins.cpp
         src/compass_draw.cpp
         src/ui_panel.cpp
+        src/input.cpp
+        src/chests.cpp
+        src/location.cpp
     MOD_JSON mod.json
     ${_tp_compass_bundle}
 )

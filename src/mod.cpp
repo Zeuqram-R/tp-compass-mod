@@ -1,6 +1,7 @@
 // TP Compass — an Elden Ring style compass for Dusklight (Twilight Princess).
 //
-// Phase 1: compass bar with cardinal points, player pins, settings panel and debug info.
+// Compass bar with cardinal points, player pins (+ hotkey), unopened chests, location name,
+// settings panel and debug info.
 
 #include <mods/service.hpp>
 #include <mods/svc/config.h>
@@ -11,6 +12,7 @@
 
 #include "compass_draw.hpp"
 #include "game_state.hpp"
+#include "input.hpp"
 #include "pins.hpp"
 #include "settings.hpp"
 #include "ui_panel.hpp"
@@ -32,6 +34,9 @@ MOD_EXPORT ModResult mod_initialize(ModError*) {
     }
     compass::initPins();
     if ((r = compass::installCompassDraw()) != MOD_OK) {
+        return r;
+    }
+    if ((r = compass::installInput()) != MOD_OK) {
         return r;
     }
     if ((r = compass::registerUiPanel()) != MOD_OK) {

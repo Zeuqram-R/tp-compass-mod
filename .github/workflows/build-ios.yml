@@ -4,12 +4,10 @@ name: Build iOS IPA
 # then publishes an unsigned IPA as a GitHub pre-release so it can be downloaded on the iPad
 # and signed/installed with Signulous.
 
+# The iPad build now lives in Zeuqram-R/dusklight-ios-bundle (all mods + this one, with the
+# engine made patchable so hooks on Dusklight's own functions work on iOS). This workflow
+# is kept for manual runs only.
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - '.github/workflows/build-mac.yml'
   workflow_dispatch:
     inputs:
       bundle_id:

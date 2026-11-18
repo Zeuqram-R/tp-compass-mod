@@ -18,6 +18,17 @@ struct Settings {
     int64_t arcDegrees = 180;   // total field of view shown on the bar
     int64_t northOffset = 2;    // index into {0, 90, 180, 270} degrees
     bool invertDirection = false;
+    // Pin hotkey: hold `pinModifier` and press `pinButton` (indices into the option tables).
+    bool pinHotkey = true;
+    int64_t pinModifier = 1;    // 0 none, 1 Z, 2 R, 3 L
+    int64_t pinButton = 0;      // 0 left, 1 right, 2 down, 3 up
+    // Chests
+    bool showChests = true;
+    bool chestsNeedCompass = false;
+    // Location name
+    bool showLocation = true;
+    int64_t locationX = 16;     // from the left of the safe area
+    int64_t locationY = 12;     // text baseline, from the bottom of the safe area
 };
 
 struct SettingsHandles {
@@ -30,6 +41,14 @@ struct SettingsHandles {
     ConfigVarHandle arcDegrees = 0;
     ConfigVarHandle northOffset = 0;
     ConfigVarHandle invertDirection = 0;
+    ConfigVarHandle pinHotkey = 0;
+    ConfigVarHandle pinModifier = 0;
+    ConfigVarHandle pinButton = 0;
+    ConfigVarHandle showChests = 0;
+    ConfigVarHandle chestsNeedCompass = 0;
+    ConfigVarHandle showLocation = 0;
+    ConfigVarHandle locationX = 0;
+    ConfigVarHandle locationY = 0;
 };
 
 extern Settings g_settings;
@@ -40,5 +59,9 @@ void refreshSettings();
 
 // North offset in degrees from the selected option index.
 float northOffsetDegrees();
+
+// GameCube pad bits for the pin hotkey options (0 = no modifier).
+uint32_t pinModifierMask();
+uint32_t pinButtonMask();
 
 }  // namespace compass
