@@ -1,5 +1,6 @@
 #include "compass_draw.hpp"
 
+#include "beacon.hpp"
 #include "chests.hpp"
 #include "game_state.hpp"
 #include "location.hpp"
@@ -249,9 +250,13 @@ void CompassDlst::drawLocationName() {
         return;
     }
     const float x = mDoGph_gInf_c::getSafeMinXF() + static_cast<float>(g_settings.locationX);
-    const float baseline = mDoGph_gInf_c::getSafeMaxYF() - static_cast<float>(g_settings.locationY);
+    constexpr float kSize = 15.0f;
+    const float offset = static_cast<float>(g_settings.locationY);
+    const float baseline = g_settings.locationAnchor == 1
+                               ? mDoGph_gInf_c::getSafeMinYF() + offset + kSize  // top: measured to the text top
+                               : mDoGph_gInf_c::getSafeMaxYF() - offset;
     font->setGX();
-    drawText(font, name, x, baseline, 15.0f, 255, 255, 255, scaleAlpha(240.0f, 1.0f));
+    drawText(font, name, x, baseline, kSize, 255, 255, 255, scaleAlpha(240.0f, 1.0f));
 }
 
 void CompassDlst::drawBar() {
@@ -340,6 +345,9 @@ void CompassDlst::drawBar() {
 }
 
 void onMeterDrawPost(ModContext*, void*, void*, void*) {
+    if (!g_state.eventRunning && g_state.windowStatus == 0) {
+        queuePinBeacons();
+    }
     g_dlst.drawCompass = shouldDrawCompass();
     g_dlst.drawLocation = g_settings.showLocation && g_state.hasPlayer && !g_state.eventRunning &&
                           g_state.windowStatus == 0;

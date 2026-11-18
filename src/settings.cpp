@@ -59,6 +59,8 @@ ModResult registerSettings() {
     if ((r = regBool("pinHotkey", d.pinHotkey, &h.pinHotkey)) != MOD_OK) return r;
     if ((r = regInt("pinModifier", d.pinModifier, &h.pinModifier)) != MOD_OK) return r;
     if ((r = regInt("pinButton", d.pinButton, &h.pinButton)) != MOD_OK) return r;
+    if ((r = regBool("pinBeacons", d.pinBeacons, &h.pinBeacons)) != MOD_OK) return r;
+    if ((r = regInt("locationAnchor", d.locationAnchor, &h.locationAnchor)) != MOD_OK) return r;
     if ((r = regBool("showChests", d.showChests, &h.showChests)) != MOD_OK) return r;
     if ((r = regBool("chestsNeedCompass", d.chestsNeedCompass, &h.chestsNeedCompass)) != MOD_OK) return r;
     if ((r = regBool("showLocation", d.showLocation, &h.showLocation)) != MOD_OK) return r;
@@ -83,6 +85,8 @@ void refreshSettings() {
     readBool(h.pinHotkey, s.pinHotkey);
     readInt(h.pinModifier, s.pinModifier);
     readInt(h.pinButton, s.pinButton);
+    readBool(h.pinBeacons, s.pinBeacons);
+    readInt(h.locationAnchor, s.locationAnchor);
     readBool(h.showChests, s.showChests);
     readBool(h.chestsNeedCompass, s.chestsNeedCompass);
     readBool(h.showLocation, s.showLocation);

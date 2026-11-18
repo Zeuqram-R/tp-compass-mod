@@ -20,15 +20,17 @@ struct Settings {
     bool invertDirection = false;
     // Pin hotkey: hold `pinModifier` and press `pinButton` (indices into the option tables).
     bool pinHotkey = true;
-    int64_t pinModifier = 1;    // 0 none, 1 Z, 2 R, 3 L
-    int64_t pinButton = 0;      // 0 left, 1 right, 2 down, 3 up
+    int64_t pinModifier = 3;    // 0 none, 1 Z, 2 R, 3 L
+    int64_t pinButton = 2;      // 0 left, 1 right, 2 down, 3 up
+    bool pinBeacons = true;     // light pillar over each pin
     // Chests
     bool showChests = true;
     bool chestsNeedCompass = false;
     // Location name
     bool showLocation = true;
     int64_t locationX = 16;     // from the left of the safe area
-    int64_t locationY = 12;     // text baseline, from the bottom of the safe area
+    int64_t locationAnchor = 0; // 0 bottom-left, 1 top-left
+    int64_t locationY = 12;     // distance from the bottom (or top) of the safe area
 };
 
 struct SettingsHandles {
@@ -44,6 +46,8 @@ struct SettingsHandles {
     ConfigVarHandle pinHotkey = 0;
     ConfigVarHandle pinModifier = 0;
     ConfigVarHandle pinButton = 0;
+    ConfigVarHandle pinBeacons = 0;
+    ConfigVarHandle locationAnchor = 0;
     ConfigVarHandle showChests = 0;
     ConfigVarHandle chestsNeedCompass = 0;
     ConfigVarHandle showLocation = 0;

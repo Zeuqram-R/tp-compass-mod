@@ -34,6 +34,7 @@ add_mod(tp_compass
         src/input.cpp
         src/chests.cpp
         src/location.cpp
+        src/beacon.cpp
     MOD_JSON mod.json
     ${_tp_compass_bundle}
 )

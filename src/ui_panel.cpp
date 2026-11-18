@@ -130,6 +130,7 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
     if ((r = addButton(panel, "Borrar marcas de esta zona", onClearStage)) != MOD_OK) return r;
     if ((r = addButton(panel, "Borrar todas las marcas", onClearAll)) != MOD_OK) return r;
     svc_ui->pane_add_text(mod_ctx, panel, "", &g_pinCountText);
+    if ((r = addToggle(panel, "Pilar de luz sobre las marcas", h.pinBeacons)) != MOD_OK) return r;
     if ((r = addToggle(panel, "Atajo de control para marcas", h.pinHotkey)) != MOD_OK) return r;
     {
         static const char* const kMods[] = {"Ninguno", "Z", "R", "L"};
@@ -139,7 +140,8 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
         if ((r = addDropdown(panel, "Botón que presionás", h.pinButton, kButtons, 4)) != MOD_OK) return r;
     }
     svc_ui->pane_add_text(mod_ctx, panel,
-        "Lejos de una marca: pone una nueva. Encima de una: la quita. Los nombres son los del "
+        "Lejos de una marca: pone una nueva. Cerca de una (su pilar se pone dorado): la quita. "
+        "Los nombres son los del "
         "control de GameCube (en tu control pueden llamarse distinto).",
         nullptr);
 
@@ -149,8 +151,12 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
 
     svc_ui->pane_add_section(mod_ctx, panel, "Nombre del lugar");
     if ((r = addToggle(panel, "Mostrar nombre del lugar", h.showLocation)) != MOD_OK) return r;
-    if ((r = addNumber(panel, "Distancia desde la izquierda", h.locationX, 0, 500, 4, "")) != MOD_OK) return r;
-    if ((r = addNumber(panel, "Distancia desde abajo", h.locationY, 0, 400, 4, "")) != MOD_OK) return r;
+    {
+        static const char* const kAnchors[] = {"Abajo a la izquierda", "Arriba a la izquierda"};
+        if ((r = addDropdown(panel, "Posición", h.locationAnchor, kAnchors, 2)) != MOD_OK) return r;
+    }
+    if ((r = addNumber(panel, "Distancia desde la izquierda", h.locationX, 0, 600, 4, "")) != MOD_OK) return r;
+    if ((r = addNumber(panel, "Distancia desde el borde", h.locationY, 0, 440, 2, "")) != MOD_OK) return r;
 
     svc_ui->pane_add_section(mod_ctx, panel, "Calibración");
     {
