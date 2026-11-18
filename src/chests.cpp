@@ -52,7 +52,7 @@ size_t collectChestMarkers(Marker* out, size_t max) {
             if (dist < 1.0f) {
                 continue;
             }
-            out[n++] = Marker{std::atan2(dx, dz) - roomRot, dist, pos.y - player.y};
+            out[n++] = Marker{MarkerKind::Chest, std::atan2(dx, dz) - roomRot, dist, pos.y - player.y};
         }
     }
     return n;

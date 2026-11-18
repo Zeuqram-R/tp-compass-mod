@@ -5,9 +5,13 @@ Brújula estilo Elden Ring para [Dusklight](https://github.com/TwilitRealm/duskl
 ## Funciones
 - Barra de brújula arriba de la pantalla con puntos cardinales (N, NE, E, SE, S, SO, O, NO)
 - Marcas propias (diamante blanco) en tu posición actual, guardadas por partida
-- Pilar de luz sobre cada marca (dorado cuando estás lo bastante cerca para quitarla)
+- Pilar de luz sobre cada marca, con aura y partículas: blanco-azulado de lejos, dorado
+  (como el aura de Majora's Mask) cuando estás lo bastante cerca para quitarla
 - Atajo de control para poner/quitar marcas (por defecto L + cruceta abajo)
 - Cofres sin abrir (cuadro café/dorado), opcionalmente solo con la brújula del dungeon
+- Golden bugs, Poes, piezas de corazón sueltas y Howling Stones sin aprender (de lo que
+  está cargado alrededor de Link)
+- Flechita arriba/abajo si un ícono está en otro piso; íconos más grandes al acercarte
 - Nombre del lugar abajo o arriba a la izquierda (tabla de nombres de Dusklight, CC0)
 - Se oculta sola en cinemáticas, diálogos y menús
 - Opciones: opacidad, ancho, posición, ángulo visible

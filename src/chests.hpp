@@ -4,8 +4,11 @@
 
 namespace compass {
 
+enum class MarkerKind { Chest, GoldenBug, Poe, HeartPiece, HowlingStone };
+
 // A marker to draw on the compass, already converted to world space.
 struct Marker {
+    MarkerKind kind;
     float bearing;   // radians, world space (atan2(dx, dz))
     float distance;  // horizontal distance from Link
     float dy;        // height difference (marker - Link)

@@ -26,6 +26,14 @@ struct Settings {
     // Chests
     bool showChests = true;
     bool chestsNeedCompass = false;
+    // Collectibles still to pick up (only what's loaded around Link)
+    bool showBugs = true;
+    bool showPoes = true;
+    bool showHeartPieces = true;
+    bool showHowlingStones = true;
+    // Marker presentation
+    bool showHeightArrows = true;  // up/down arrow when a marker is on another floor
+    bool scaleByDistance = true;   // nearer markers are drawn bigger
     // Location name
     bool showLocation = true;
     int64_t locationX = 16;     // from the left of the safe area
@@ -49,6 +57,12 @@ struct SettingsHandles {
     ConfigVarHandle pinBeacons = 0;
     ConfigVarHandle locationAnchor = 0;
     ConfigVarHandle showChests = 0;
+    ConfigVarHandle showBugs = 0;
+    ConfigVarHandle showPoes = 0;
+    ConfigVarHandle showHeartPieces = 0;
+    ConfigVarHandle showHowlingStones = 0;
+    ConfigVarHandle showHeightArrows = 0;
+    ConfigVarHandle scaleByDistance = 0;
     ConfigVarHandle chestsNeedCompass = 0;
     ConfigVarHandle showLocation = 0;
     ConfigVarHandle locationX = 0;

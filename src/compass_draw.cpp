@@ -2,6 +2,7 @@
 
 #include "beacon.hpp"
 #include "chests.hpp"
+#include "collectibles.hpp"
 #include "game_state.hpp"
 #include "location.hpp"
 #include "pins.hpp"
@@ -194,14 +195,120 @@ bool projectBearing(const Layout& l, float bearing, float& outX, float& edgeFade
     return true;
 }
 
+// Filled circle (triangle fan).
+void disc(float cx, float cy, float r, const GXColor& color) {
+    constexpr int kSeg = 18;
+    beginFlat(color);
+    GXBegin(GX_TRIANGLEFAN, GX_VTXFMT0, kSeg + 2);
+    GXPosition3f32(cx, cy, 0.0f);
+    for (int i = 0; i <= kSeg; ++i) {
+        const float a = static_cast<float>(i) / kSeg * 2.0f * kPi;
+        GXPosition3f32(cx + std::cos(a) * r, cy + std::sin(a) * r, 0.0f);
+    }
+    GXEnd();
+}
+
+void triangleUp(float cx, float bottom, float halfW, float h, const GXColor& color) {
+    beginFlat(color);
+    GXBegin(GX_TRIANGLES, GX_VTXFMT0, 3);
+    GXPosition3f32(cx - halfW, bottom, 0.0f);
+    GXPosition3f32(cx, bottom - h, 0.0f);
+    GXPosition3f32(cx + halfW, bottom, 0.0f);
+    GXEnd();
+}
+
+GXColor rgba(u8 r, u8 g, u8 b, float baseAlpha, float factor) {
+    return GXColor{r, g, b, scaleAlpha(baseAlpha, factor)};
+}
+
 // Brown chest box with a gold lid line, like the dungeon map icons.
-void chestIcon(float cx, float cy, float alphaFactor) {
-    const float hw = 4.5f, hh = 3.5f;
+void chestIcon(float cx, float cy, float alphaFactor, float s = 1.0f) {
+    const float hw = 4.5f * s, hh = 3.5f * s;
     rect(cx - hw - 1.0f, cy - hh - 1.0f, cx + hw + 1.0f, cy + hh + 1.0f,
         GXColor{20, 12, 4, scaleAlpha(210.0f, alphaFactor)});
     rect(cx - hw, cy - hh, cx + hw, cy + hh, GXColor{150, 92, 38, scaleAlpha(255.0f, alphaFactor)});
-    rect(cx - hw, cy - 0.75f, cx + hw, cy + 0.75f, GXColor{238, 196, 72, scaleAlpha(255.0f, alphaFactor)});
-    rect(cx - 0.9f, cy - 1.6f, cx + 0.9f, cy + 1.6f, GXColor{238, 196, 72, scaleAlpha(255.0f, alphaFactor)});
+    rect(cx - hw, cy - 0.75f * s, cx + hw, cy + 0.75f * s, GXColor{238, 196, 72, scaleAlpha(255.0f, alphaFactor)});
+    rect(cx - 0.9f * s, cy - 1.6f * s, cx + 0.9f * s, cy + 1.6f * s,
+        GXColor{238, 196, 72, scaleAlpha(255.0f, alphaFactor)});
+}
+
+// Golden bug: gold disc with a bright centre.
+void bugIcon(float cx, float cy, float a, float s) {
+    disc(cx, cy, 5.0f * s, rgba(40, 26, 0, 210.0f, a));
+    disc(cx, cy, 4.0f * s, rgba(232, 180, 40, 255.0f, a));
+    disc(cx - 1.0f * s, cy - 1.0f * s, 1.6f * s, rgba(255, 240, 170, 255.0f, a));
+}
+
+// Poe soul: violet ring with a pale glowing core.
+void poeIcon(float cx, float cy, float a, float s) {
+    disc(cx, cy, 5.0f * s, rgba(20, 0, 30, 210.0f, a));
+    disc(cx, cy, 4.2f * s, rgba(170, 90, 230, 255.0f, a));
+    disc(cx, cy, 2.4f * s, rgba(235, 215, 255, 255.0f, a));
+}
+
+// Piece of Heart: small red heart (two lobes + point).
+void heartIcon(float cx, float cy, float a, float s) {
+    const GXColor outline = rgba(40, 0, 0, 210.0f, a);
+    const GXColor red = rgba(232, 48, 64, 255.0f, a);
+    disc(cx - 2.0f * s, cy - 1.2f * s, 2.9f * s, outline);
+    disc(cx + 2.0f * s, cy - 1.2f * s, 2.9f * s, outline);
+    triangleDown(cx, cy - 1.0f * s, 5.0f * s, 6.2f * s, outline);
+    disc(cx - 2.0f * s, cy - 1.2f * s, 2.1f * s, red);
+    disc(cx + 2.0f * s, cy - 1.2f * s, 2.1f * s, red);
+    triangleDown(cx, cy - 1.0f * s, 4.1f * s, 5.0f * s, red);
+}
+
+// Howling Stone: teal stone with a dark hole.
+void stoneIcon(float cx, float cy, float a, float s) {
+    disc(cx, cy, 5.0f * s, rgba(0, 25, 25, 210.0f, a));
+    disc(cx, cy, 4.2f * s, rgba(80, 190, 180, 255.0f, a));
+    disc(cx, cy, 1.6f * s, rgba(10, 40, 40, 255.0f, a));
+}
+
+// Bigger when near, smaller when far (if enabled).
+float distanceScale(float distance) {
+    if (!g_settings.scaleByDistance) {
+        return 1.0f;
+    }
+    constexpr float kNear = 600.0f, kFar = 7000.0f;
+    const float t = std::clamp((distance - kNear) / (kFar - kNear), 0.0f, 1.0f);
+    return 1.3f - 0.6f * t;  // 1.3x up close, 0.7x far away
+}
+
+// Small arrow above (target higher) or below (target lower) an icon.
+void heightArrow(float cx, float cy, float dy, float iconRadius, float a) {
+    constexpr float kThreshold = 250.0f;  // roughly one floor
+    if (!g_settings.showHeightArrows || std::fabs(dy) < kThreshold) {
+        return;
+    }
+    const GXColor c = rgba(255, 255, 255, 235.0f, a);
+    if (dy > 0.0f) {
+        triangleUp(cx, cy - iconRadius - 1.5f, 2.6f, 3.0f, c);
+    } else {
+        triangleDown(cx, cy + iconRadius + 1.5f, 2.6f, 3.0f, c);
+    }
+}
+
+void drawMarker(const Marker& m, float x, float y, float a) {
+    const float s = distanceScale(m.distance);
+    switch (m.kind) {
+    case MarkerKind::Chest:
+        chestIcon(x, y, a, s);
+        break;
+    case MarkerKind::GoldenBug:
+        bugIcon(x, y, a, s);
+        break;
+    case MarkerKind::Poe:
+        poeIcon(x, y, a, s);
+        break;
+    case MarkerKind::HeartPiece:
+        heartIcon(x, y, a, s);
+        break;
+    case MarkerKind::HowlingStone:
+        stoneIcon(x, y, a, s);
+        break;
+    }
+    heightArrow(x, y, m.dy, 5.0f * s, a);
 }
 
 void drawText(JUTFont* font, const char* text, float x, float baseline, float size, u8 r, u8 g, u8 b,
@@ -283,19 +390,21 @@ void CompassDlst::drawBar() {
             GXColor{255, 255, 255, scaleAlpha(140.0f, fade)});
     }
 
-    // Unopened chests (behind pins so a pin on a chest stays visible).
+    // Collectibles and unopened chests, farthest first so nearer icons end up on top.
     {
-        static Marker chests[kMaxChestMarkers];
-        const size_t n = collectChestMarkers(chests, kMaxChestMarkers);
+        static Marker markers[kMaxChestMarkers + kMaxCollectibles];
+        size_t n = collectChestMarkers(markers, kMaxChestMarkers);
+        n += collectCollectibleMarkers(markers + n, kMaxCollectibles);
+        std::sort(markers, markers + n, [](const Marker& a, const Marker& b) { return a.distance > b.distance; });
         for (size_t i = 0; i < n; ++i) {
             float x, fade;
-            if (projectBearing(l, chests[i].bearing, x, fade)) {
-                chestIcon(x, midY, fade);
+            if (projectBearing(l, markers[i].bearing, x, fade)) {
+                drawMarker(markers[i], x, midY, fade);
             }
         }
     }
 
-    // Player pins (white diamonds), only for the stage we're in.
+    // Player pins (white diamonds), only for the stage we're in. Drawn last: they're yours.
     if (g_settings.showPins) {
         for (uint32_t i = 0; i < g_pins.count; ++i) {
             const Pin& p = g_pins.pins[i];
@@ -304,15 +413,18 @@ void CompassDlst::drawBar() {
             }
             const float dx = p.x - g_state.x;
             const float dz = p.z - g_state.z;
-            if (dx * dx + dz * dz < 1.0f) {
+            const float dist = std::sqrt(dx * dx + dz * dz);
+            if (dist < 1.0f) {
                 continue;  // standing on it
             }
             float x, fade;
             if (!projectBearing(l, std::atan2(dx, dz), x, fade)) {
                 continue;
             }
-            diamond(x, midY, 5.0f, GXColor{20, 20, 20, scaleAlpha(200.0f, fade)});
-            diamond(x, midY, 4.0f, GXColor{255, 255, 255, scaleAlpha(255.0f, fade)});
+            const float s = distanceScale(dist);
+            diamond(x, midY, 5.0f * s, GXColor{20, 20, 20, scaleAlpha(200.0f, fade)});
+            diamond(x, midY, 4.0f * s, GXColor{255, 255, 255, scaleAlpha(255.0f, fade)});
+            heightArrow(x, midY, p.y - g_state.y, 5.0f * s, fade);
         }
     }
 

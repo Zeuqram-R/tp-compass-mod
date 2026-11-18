@@ -62,6 +62,12 @@ ModResult registerSettings() {
     if ((r = regBool("pinBeacons", d.pinBeacons, &h.pinBeacons)) != MOD_OK) return r;
     if ((r = regInt("locationAnchor", d.locationAnchor, &h.locationAnchor)) != MOD_OK) return r;
     if ((r = regBool("showChests", d.showChests, &h.showChests)) != MOD_OK) return r;
+    if ((r = regBool("showBugs", d.showBugs, &h.showBugs)) != MOD_OK) return r;
+    if ((r = regBool("showPoes", d.showPoes, &h.showPoes)) != MOD_OK) return r;
+    if ((r = regBool("showHeartPieces", d.showHeartPieces, &h.showHeartPieces)) != MOD_OK) return r;
+    if ((r = regBool("showHowlingStones", d.showHowlingStones, &h.showHowlingStones)) != MOD_OK) return r;
+    if ((r = regBool("showHeightArrows", d.showHeightArrows, &h.showHeightArrows)) != MOD_OK) return r;
+    if ((r = regBool("scaleByDistance", d.scaleByDistance, &h.scaleByDistance)) != MOD_OK) return r;
     if ((r = regBool("chestsNeedCompass", d.chestsNeedCompass, &h.chestsNeedCompass)) != MOD_OK) return r;
     if ((r = regBool("showLocation", d.showLocation, &h.showLocation)) != MOD_OK) return r;
     if ((r = regInt("locationX", d.locationX, &h.locationX)) != MOD_OK) return r;
@@ -88,6 +94,12 @@ void refreshSettings() {
     readBool(h.pinBeacons, s.pinBeacons);
     readInt(h.locationAnchor, s.locationAnchor);
     readBool(h.showChests, s.showChests);
+    readBool(h.showBugs, s.showBugs);
+    readBool(h.showPoes, s.showPoes);
+    readBool(h.showHeartPieces, s.showHeartPieces);
+    readBool(h.showHowlingStones, s.showHowlingStones);
+    readBool(h.showHeightArrows, s.showHeightArrows);
+    readBool(h.scaleByDistance, s.scaleByDistance);
     readBool(h.chestsNeedCompass, s.chestsNeedCompass);
     readBool(h.showLocation, s.showLocation);
     readInt(h.locationX, s.locationX);

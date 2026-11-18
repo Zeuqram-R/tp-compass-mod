@@ -10,6 +10,8 @@
 #include <mods/svc/save.h>
 #include <mods/svc/ui.h>
 
+#include "beacon.hpp"
+#include "collectibles.hpp"
 #include "compass_draw.hpp"
 #include "game_state.hpp"
 #include "input.hpp"
@@ -51,6 +53,8 @@ MOD_EXPORT ModResult mod_update(ModError*) {
     compass::refreshSettings();
     compass::updateGameState();
     compass::shouldDrawCompass();  // keeps the debug "hidden by" reason fresh
+    compass::updateCollectibles();
+    compass::updateBeaconParticles();
     return MOD_OK;
 }
 

@@ -149,6 +149,20 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
     if ((r = addToggle(panel, "Mostrar cofres sin abrir", h.showChests)) != MOD_OK) return r;
     if ((r = addToggle(panel, "Solo si tenés la brújula del dungeon", h.chestsNeedCompass)) != MOD_OK) return r;
 
+    svc_ui->pane_add_section(mod_ctx, panel, "Coleccionables");
+    if ((r = addToggle(panel, "Golden bugs pendientes", h.showBugs)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Poes (almas)", h.showPoes)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Piezas de corazón sueltas", h.showHeartPieces)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Howling Stones sin aprender", h.showHowlingStones)) != MOD_OK) return r;
+    svc_ui->pane_add_text(mod_ctx, panel,
+        "Solo aparecen los que están cargados cerca de Link (la zona actual y las vecinas). "
+        "Los que ya agarraste no aparecen. Los Poes solo salen de noche.",
+        nullptr);
+
+    svc_ui->pane_add_section(mod_ctx, panel, "Íconos");
+    if ((r = addToggle(panel, "Flecha arriba/abajo si está en otro piso", h.showHeightArrows)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Más grandes mientras más cerca", h.scaleByDistance)) != MOD_OK) return r;
+
     svc_ui->pane_add_section(mod_ctx, panel, "Nombre del lugar");
     if ((r = addToggle(panel, "Mostrar nombre del lugar", h.showLocation)) != MOD_OK) return r;
     {
