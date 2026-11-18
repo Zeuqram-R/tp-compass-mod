@@ -1,6 +1,8 @@
 #include "pins.hpp"
 
+#include "entrances.hpp"
 #include "game_state.hpp"
+#include "worldmap.hpp"
 
 #include <mods/svc/log.hpp>
 #include <mods/svc/save.h>
@@ -13,7 +15,19 @@ PinStore g_pins;
 
 namespace {
 
-constexpr const char* kBlobName = "pins_v1";
+constexpr const char* kBlobName = "pins_v2";
+constexpr const char* kOldBlobName = "pins_v1";
+
+// Layout of the first version (no world-map anchor).
+struct PinV1 {
+    char stage[8];
+    float x, y, z;
+};
+struct PinStoreV1 {
+    uint32_t version;
+    uint32_t count;
+    PinV1 pins[kMaxPins];
+};
 
 bool g_slotActive = false;
 
@@ -25,11 +39,27 @@ void loadFromSlot() {
     PinStore loaded;
     size_t size = sizeof(loaded);
     if (svc_save->get_blob(mod_ctx, kBlobName, &loaded, &size) == MOD_OK && size == sizeof(loaded) &&
-        loaded.version == 1 && loaded.count <= kMaxPins)
+        loaded.version == 2 && loaded.count <= kMaxPins)
     {
         g_pins = loaded;
     } else {
         g_pins = PinStore{};
+        // Migrate pins saved by older versions of the mod.
+        static PinStoreV1 old;
+        size = sizeof(old);
+        if (svc_save->get_blob(mod_ctx, kOldBlobName, &old, &size) == MOD_OK && size == sizeof(old) &&
+            old.count <= kMaxPins)
+        {
+            for (uint32_t i = 0; i < old.count; ++i) {
+                Pin& p = g_pins.pins[i];
+                std::memset(&p, 0, sizeof(p));
+                std::memcpy(p.stage, old.pins[i].stage, sizeof(p.stage));
+                p.x = old.pins[i].x;
+                p.y = old.pins[i].y;
+                p.z = old.pins[i].z;
+            }
+            g_pins.count = old.count;
+        }
     }
     mods::log::info("pins loaded: {}", g_pins.count);
 }
@@ -80,6 +110,18 @@ PinResult addPinAtPlayer() {
     p.x = g_state.x;
     p.y = g_state.y;
     p.z = g_state.z;
+    float ax, az;
+    if (playerWorldPos(ax, az)) {
+        p.anchorValid = 1;  // overworld: the pin itself
+    } else if (const Entrance* e = findEntrance(g_state.stage, g_state.room)) {
+        ax = e->x, az = e->z, p.anchorValid = 1;  // inside: its entrance
+    } else if (lastFieldWorldPos(ax, az)) {
+        p.anchorValid = 1;  // inside, entrance unknown: where Link last was outside
+    }
+    if (p.anchorValid) {
+        p.anchorX = ax;
+        p.anchorZ = az;
+    }
     mods::log::info("pin added in {} at ({:.0f}, {:.0f}, {:.0f})", g_state.stage, p.x, p.y, p.z);
     return store();
 }
@@ -134,6 +176,37 @@ PinResult clearAllPins() {
     }
     g_pins.count = 0;
     return store();
+}
+
+void refreshPinAnchors() {
+    if (!worldmapReady()) {
+        return;
+    }
+    bool changed = false;
+    for (uint32_t i = 0; i < g_pins.count; ++i) {
+        Pin& p = g_pins.pins[i];
+        if (p.anchorValid) {
+            continue;
+        }
+        char stage[9] = {};
+        std::memcpy(stage, p.stage, 8);
+        float ox, oz;
+        if (isFieldStage(stage) && stageWorldOffset(stage, -1, ox, oz)) {
+            // Overworld pin from an older version: its map position is local + stage offset.
+            p.anchorX = p.x + ox;
+            p.anchorZ = p.z + oz;
+            p.anchorValid = 1;
+            changed = true;
+        } else if (const Entrance* e = findEntrance(stage, -1)) {
+            p.anchorX = e->x;
+            p.anchorZ = e->z;
+            p.anchorValid = 1;
+            changed = true;
+        }
+    }
+    if (changed) {
+        store();
+    }
 }
 
 size_t pinsInCurrentStage() {

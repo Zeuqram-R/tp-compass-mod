@@ -3,6 +3,8 @@
 #include "beacon.hpp"
 #include "chests.hpp"
 #include "collectibles.hpp"
+#include "poi.hpp"
+#include "worldmap.hpp"
 #include "game_state.hpp"
 #include "location.hpp"
 #include "pins.hpp"
@@ -23,6 +25,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 
 DEFINE_HOOK(&dMeter2_c::_draw, Meter2Draw);
@@ -265,6 +268,96 @@ void stoneIcon(float cx, float cy, float a, float s) {
     disc(cx, cy, 1.6f * s, rgba(10, 40, 40, 255.0f, a));
 }
 
+// ---- World icons: white with a black outline. Each shape is drawn once grown and black, then
+// in white on top. `g` grows the shape by that many units for the outline pass. ----
+
+constexpr GXColor kInk{0, 0, 0, 255};
+constexpr GXColor kPaper{255, 255, 255, 255};
+
+GXColor withAlpha(GXColor c, float base, float a) {
+    c.a = scaleAlpha(base, a);
+    return c;
+}
+
+template <typename Shape>
+void outlined(Shape shape, float a) {
+    shape(withAlpha(kInk, 220.0f, a), 1.0f);
+    shape(withAlpha(kPaper, 255.0f, a), 0.0f);
+}
+
+void villageIcon(float cx, float cy, float a, float s) {
+    outlined([&](GXColor c, float g) {
+        rect(cx - 3.6f * s - g, cy - 0.6f * s - g, cx + 3.6f * s + g, cy + 4.2f * s + g, c);   // walls
+        triangleUp(cx, cy - 0.4f * s + g, 5.2f * s + g, 5.4f * s + 2.0f * g, c);               // thatched roof
+    }, a);
+    rect(cx - 1.0f * s, cy + 1.4f * s, cx + 1.0f * s, cy + 4.2f * s, withAlpha(kInk, 255.0f, a));  // door
+}
+
+void castleIcon(float cx, float cy, float a, float s) {
+    outlined([&](GXColor c, float g) {
+        rect(cx - 3.0f * s - g, cy - 2.0f * s - g, cx + 3.0f * s + g, cy + 4.2f * s + g, c);  // keep
+        rect(cx - 5.4f * s - g, cy - 4.4f * s - g, cx - 3.0f * s + g, cy + 4.2f * s + g, c);  // left tower
+        rect(cx + 3.0f * s - g, cy - 4.4f * s - g, cx + 5.4f * s + g, cy + 4.2f * s + g, c);  // right tower
+        rect(cx - 1.0f * s - g, cy - 4.0f * s - g, cx + 1.0f * s + g, cy - 2.0f * s + g, c);  // centre merlon
+    }, a);
+    rect(cx - 1.0f * s, cy + 1.2f * s, cx + 1.0f * s, cy + 4.2f * s, withAlpha(kInk, 255.0f, a));  // gate
+}
+
+void dungeonIcon(float cx, float cy, float a, float s) {
+    // A rocky arch with a pitch-black mouth and jagged teeth.
+    outlined([&](GXColor c, float g) {
+        disc(cx, cy, 5.0f * s + g, c);
+        rect(cx - 5.0f * s - g, cy, cx + 5.0f * s + g, cy + 4.4f * s + g, c);
+    }, a);
+    const GXColor hole = withAlpha(kInk, 255.0f, a);
+    disc(cx, cy + 0.6f * s, 3.0f * s, hole);
+    rect(cx - 3.0f * s, cy + 0.6f * s, cx + 3.0f * s, cy + 4.4f * s, hole);
+    const GXColor tooth = withAlpha(kPaper, 255.0f, a);
+    triangleDown(cx - 1.4f * s, cy - 2.2f * s, 0.8f * s, 2.0f * s, tooth);
+    triangleDown(cx + 1.4f * s, cy - 2.2f * s, 0.8f * s, 2.0f * s, tooth);
+}
+
+void portalIcon(float cx, float cy, float a, float s) {
+    // Swirl of rings with the square specks of Twilight around it.
+    outlined([&](GXColor c, float g) {
+        disc(cx, cy, 4.4f * s + g, c);
+        const float k = 4.6f * s, h = 0.9f * s + g;
+        rect(cx - k - h, cy - k - h, cx - k + h, cy - k + h, c);
+        rect(cx + k - h, cy - k - h, cx + k + h, cy - k + h, c);
+        rect(cx - k - h, cy + k - h, cx - k + h, cy + k + h, c);
+        rect(cx + k - h, cy + k - h, cx + k + h, cy + k + h, c);
+    }, a);
+    disc(cx, cy, 3.1f * s, withAlpha(kInk, 255.0f, a));
+    disc(cx + 0.5f * s, cy - 0.3f * s, 2.0f * s, withAlpha(kPaper, 255.0f, a));
+    disc(cx + 0.9f * s, cy - 0.5f * s, 0.9f * s, withAlpha(kInk, 255.0f, a));
+}
+
+void shopIcon(float cx, float cy, float a, float s) {
+    // Rupee bag: round sack, tied neck, a rupee on the front.
+    outlined([&](GXColor c, float g) {
+        disc(cx, cy + 1.2f * s, 4.0f * s + g, c);
+        rect(cx - 1.6f * s - g, cy - 4.2f * s - g, cx + 1.6f * s + g, cy - 2.0f * s + g, c);
+    }, a);
+    rect(cx - 2.0f * s, cy - 2.4f * s, cx + 2.0f * s, cy - 1.6f * s, withAlpha(kInk, 255.0f, a));  // tie
+    diamond(cx, cy + 1.4f * s, 1.8f * s, withAlpha(kInk, 255.0f, a));                              // rupee
+}
+
+void itemIcon(float cx, float cy, float a, float s) {
+    // Randomizer check: an eight-point sparkle.
+    outlined([&](GXColor c, float g) {
+        diamond(cx, cy, 4.6f * s + g, c);
+        rect(cx - 3.0f * s - g, cy - 3.0f * s - g, cx + 3.0f * s + g, cy + 3.0f * s + g, c);
+    }, a);
+    disc(cx, cy, 1.4f * s, withAlpha(kInk, 255.0f, a));
+}
+
+void objectiveIcon(float cx, float cy, float a, float s) {
+    disc(cx, cy, 5.6f * s, rgba(0, 0, 0, 220.0f, a));
+    disc(cx, cy, 4.6f * s, rgba(128, 22, 46, 255.0f, a));    // burgundy
+    disc(cx, cy, 2.6f * s, rgba(196, 70, 96, 255.0f, a));
+    disc(cx, cy, 1.2f * s, rgba(255, 220, 228, 255.0f, a));
+}
+
 // Bigger when near, smaller when far (if enabled).
 float distanceScale(float distance) {
     if (!g_settings.scaleByDistance) {
@@ -306,6 +399,27 @@ void drawMarker(const Marker& m, float x, float y, float a) {
         break;
     case MarkerKind::HowlingStone:
         stoneIcon(x, y, a, s);
+        break;
+    case MarkerKind::Item:
+        itemIcon(x, y, a, s);
+        break;
+    case MarkerKind::Village:
+        villageIcon(x, y, a, s);
+        break;
+    case MarkerKind::Castle:
+        castleIcon(x, y, a, s);
+        break;
+    case MarkerKind::Dungeon:
+        dungeonIcon(x, y, a, s);
+        break;
+    case MarkerKind::Portal:
+        portalIcon(x, y, a, s);
+        break;
+    case MarkerKind::Shop:
+        shopIcon(x, y, a, s);
+        break;
+    case MarkerKind::Objective:
+        objectiveIcon(x, y, a, s);
         break;
     }
     heightArrow(x, y, m.dy, 5.0f * s, a);
@@ -364,6 +478,14 @@ void CompassDlst::drawLocationName() {
                                : mDoGph_gInf_c::getSafeMaxYF() - offset;
     font->setGX();
     drawText(font, name, x, baseline, kSize, 255, 255, 255, scaleAlpha(240.0f, 1.0f));
+
+    Marker objective;
+    const char* objectiveName = nullptr;
+    if (g_settings.showObjectiveText && currentObjective(objective, objectiveName) && objectiveName != nullptr) {
+        char line[64];
+        std::snprintf(line, sizeof(line), "Objetivo: %s", objectiveName);
+        drawText(font, line, x, baseline + kSize + 2.0f, 11.0f, 230, 150, 170, scaleAlpha(230.0f, 1.0f));
+    }
 }
 
 void CompassDlst::drawBar() {
@@ -392,9 +514,15 @@ void CompassDlst::drawBar() {
 
     // Collectibles and unopened chests, farthest first so nearer icons end up on top.
     {
-        static Marker markers[kMaxChestMarkers + kMaxCollectibles];
-        size_t n = collectChestMarkers(markers, kMaxChestMarkers);
+        static Marker markers[kMaxChestMarkers + kMaxCollectibles + kMaxPoiMarkers + 1];
+        size_t n = collectPoiMarkers(markers, kMaxPoiMarkers);
+        n += collectChestMarkers(markers + n, kMaxChestMarkers);
         n += collectCollectibleMarkers(markers + n, kMaxCollectibles);
+        Marker objective;
+        const char* objectiveName = nullptr;
+        if (currentObjective(objective, objectiveName)) {
+            markers[n++] = objective;
+        }
         std::sort(markers, markers + n, [](const Marker& a, const Marker& b) { return a.distance > b.distance; });
         for (size_t i = 0; i < n; ++i) {
             float x, fade;
@@ -409,6 +537,16 @@ void CompassDlst::drawBar() {
         for (uint32_t i = 0; i < g_pins.count; ++i) {
             const Pin& p = g_pins.pins[i];
             if (std::strncmp(p.stage, g_state.stage, sizeof(p.stage)) != 0) {
+                // Pin in another zone: point at its world-map anchor (overworld only).
+                float bearing, distance, x, fade;
+                if (g_settings.showRemotePins && p.anchorValid &&
+                    worldBearing(p.anchorX, p.anchorZ, bearing, distance) && projectBearing(l, bearing, x, fade))
+                {
+                    const float s = distanceScale(distance) * 0.9f;
+                    diamond(x, midY, 5.0f * s, GXColor{20, 20, 20, scaleAlpha(200.0f, fade)});
+                    diamond(x, midY, 4.0f * s, GXColor{255, 255, 255, scaleAlpha(255.0f, fade)});
+                    diamond(x, midY, 2.2f * s, GXColor{20, 20, 20, scaleAlpha(230.0f, fade)});  // hollow = other zone
+                }
                 continue;
             }
             const float dx = p.x - g_state.x;

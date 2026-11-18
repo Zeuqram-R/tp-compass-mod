@@ -13,6 +13,7 @@
 #include "beacon.hpp"
 #include "collectibles.hpp"
 #include "compass_draw.hpp"
+#include "entrances.hpp"
 #include "game_state.hpp"
 #include "input.hpp"
 #include "pins.hpp"
@@ -35,6 +36,7 @@ MOD_EXPORT ModResult mod_initialize(ModError*) {
         return r;
     }
     compass::initPins();
+    compass::initEntrances();
     if ((r = compass::installCompassDraw()) != MOD_OK) {
         return r;
     }
@@ -53,6 +55,8 @@ MOD_EXPORT ModResult mod_update(ModError*) {
     compass::refreshSettings();
     compass::updateGameState();
     compass::shouldDrawCompass();  // keeps the debug "hidden by" reason fresh
+    compass::updateEntrances();
+    compass::refreshPinAnchors();
     compass::updateCollectibles();
     compass::updateBeaconParticles();
     return MOD_OK;

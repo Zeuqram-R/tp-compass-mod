@@ -12,6 +12,12 @@ Brújula estilo Elden Ring para [Dusklight](https://github.com/TwilitRealm/duskl
 - Golden bugs, Poes, piezas de corazón sueltas y Howling Stones sin aprender (de lo que
   está cargado alrededor de Link)
 - Flechita arriba/abajo si un ícono está en otro piso; íconos más grandes al acercarte
+- Puntos importantes (blancos con borde negro): pueblos, Castle Town, portales de Midna
+  desbloqueados y entradas de dungeons/tiendas/Hyrule Castle aprendidas al visitarlas
+- Marcas de otras zonas desde cualquier parte del overworld (las de dungeons/interiores
+  apuntan a su entrada)
+- Objetivo actual de la historia (círculo burgundy), oculto en dungeons y en randomizer
+- Modo randomizer: items sueltos como chequeo genérico
 - Nombre del lugar abajo o arriba a la izquierda (tabla de nombres de Dusklight, CC0)
 - Se oculta sola en cinemáticas, diálogos y menús
 - Opciones: opacidad, ancho, posición, ángulo visible

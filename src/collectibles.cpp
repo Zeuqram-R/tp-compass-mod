@@ -44,7 +44,16 @@ bool classify(fopAc_ac_c* actor, MarkerKind& kind) {
         return g_settings.showPoes;
     }
     if (name == fpcNm_ITEM_e) {
-        if (daItem_prm::getItemNo(static_cast<daItem_c*>(actor)) != dItemNo_KAKERA_HEART_e) {
+        daItem_c* item = static_cast<daItem_c*>(actor);
+        if (g_settings.randomizerMode) {
+            // Any one-time pickup (it has a save bit) is a check; its contents are shuffled.
+            if (daItem_prm::getItemBitNo(item) == 0xFF) {
+                return false;
+            }
+            kind = MarkerKind::Item;
+            return g_settings.showHeartPieces;
+        }
+        if (daItem_prm::getItemNo(item) != dItemNo_KAKERA_HEART_e) {
             return false;
         }
         kind = MarkerKind::HeartPiece;

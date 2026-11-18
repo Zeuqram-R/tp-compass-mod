@@ -4,7 +4,20 @@
 
 namespace compass {
 
-enum class MarkerKind { Chest, GoldenBug, Poe, HeartPiece, HowlingStone };
+enum class MarkerKind {
+    Chest,
+    GoldenBug,
+    Poe,
+    HeartPiece,
+    HowlingStone,
+    Item,       // randomizer: any freestanding item check
+    Village,
+    Castle,
+    Dungeon,
+    Portal,
+    Shop,
+    Objective,
+};
 
 // A marker to draw on the compass, already converted to world space.
 struct Marker {

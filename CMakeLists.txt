@@ -36,6 +36,9 @@ add_mod(tp_compass
         src/location.cpp
         src/beacon.cpp
         src/collectibles.cpp
+        src/worldmap.cpp
+        src/entrances.cpp
+        src/poi.cpp
     MOD_JSON mod.json
     ${_tp_compass_bundle}
 )

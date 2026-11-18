@@ -122,6 +122,8 @@ void BeaconPacket::draw() {
     GXSetZMode(GX_ENABLE, GX_LEQUAL, GX_DISABLE);
     GXSetAlphaCompare(GX_ALWAYS, 0, GX_AOP_OR, GX_ALWAYS, 0);
     GXSetCullMode(GX_CULL_NONE);
+    // Ignore the scene fog (wolf senses use a very short one that hid the pillar from afar).
+    GXSetFog(GX_FOG_NONE, 0.0f, 0.0f, 0.0f, 0.0f, GXColor{0, 0, 0, 0});
     GXLoadPosMtxImm(view, GX_PNMTX0);
     GXSetCurrentMtx(GX_PNMTX0);
 

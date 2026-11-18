@@ -9,12 +9,17 @@ namespace compass {
 struct Pin {
     char stage[8];
     float x, y, z;
+    // Where to point from other zones (world map). For pins inside dungeons/interiors this is
+    // the entrance of that place.
+    uint8_t anchorValid;
+    uint8_t pad[3];
+    float anchorX, anchorZ;
 };
 
 constexpr size_t kMaxPins = 64;
 
 struct PinStore {
-    uint32_t version = 1;
+    uint32_t version = 2;
     uint32_t count = 0;
     Pin pins[kMaxPins] = {};
 };
@@ -33,6 +38,9 @@ PinResult togglePinAtPlayer();
 constexpr float kPinToggleRadius = 300.0f;
 PinResult clearPinsInCurrentStage();
 PinResult clearAllPins();
+
+// Fills in world-map anchors that couldn't be computed when the pins were placed.
+void refreshPinAnchors();
 
 // Number of pins in the stage the player is in right now.
 size_t pinsInCurrentStage();

@@ -1,6 +1,9 @@
 #include "ui_panel.hpp"
 
+#include "entrances.hpp"
 #include "game_state.hpp"
+#include "poi.hpp"
+#include "worldmap.hpp"
 #include "pins.hpp"
 #include "settings.hpp"
 
@@ -9,6 +12,8 @@
 
 #include <fmt/format.h>
 
+#include <cmath>
+#include <cstring>
 #include <string>
 
 namespace compass {
@@ -149,10 +154,25 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
     if ((r = addToggle(panel, "Mostrar cofres sin abrir", h.showChests)) != MOD_OK) return r;
     if ((r = addToggle(panel, "Solo si tenés la brújula del dungeon", h.chestsNeedCompass)) != MOD_OK) return r;
 
+    svc_ui->pane_add_section(mod_ctx, panel, "Mundo");
+    if ((r = addToggle(panel, "Puntos importantes", h.showPois)) != MOD_OK) return r;
+    svc_ui->pane_add_text(mod_ctx, panel,
+        "Pueblos, Castle Town y portales de Midna desbloqueados. Las entradas de dungeons, "
+        "tiendas y Hyrule Castle aparecen después de entrar a ellas una vez.",
+        nullptr);
+    if ((r = addToggle(panel, "Objetivo actual (círculo burgundy)", h.showObjective)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Nombre del objetivo bajo el lugar", h.showObjectiveText)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Marcas de otras zonas", h.showRemotePins)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Estoy jugando randomizer", h.randomizerMode)) != MOD_OK) return r;
+    svc_ui->pane_add_text(mod_ctx, panel,
+        "Con randomizer: los items sueltos salen como item genérico (no siempre son piezas de "
+        "corazón) y el objetivo de la historia se oculta.",
+        nullptr);
+
     svc_ui->pane_add_section(mod_ctx, panel, "Coleccionables");
     if ((r = addToggle(panel, "Golden bugs pendientes", h.showBugs)) != MOD_OK) return r;
     if ((r = addToggle(panel, "Poes (almas)", h.showPoes)) != MOD_OK) return r;
-    if ((r = addToggle(panel, "Piezas de corazón sueltas", h.showHeartPieces)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Piezas de corazón sueltas (items, en randomizer)", h.showHeartPieces)) != MOD_OK) return r;
     if ((r = addToggle(panel, "Howling Stones sin aprender", h.showHowlingStones)) != MOD_OK) return r;
     svc_ui->pane_add_text(mod_ctx, panel,
         "Solo aparecen los que están cargados cerca de Link (la zona actual y las vecinas). "
@@ -185,6 +205,42 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
     return MOD_OK;
 }
 
+std::string worldPosText() {
+    float x, z;
+    if (!playerWorldPos(x, z)) {
+        return "fuera del overworld";
+    }
+    return fmt::format("({:.0f}, {:.0f})", x, z);
+}
+
+// Distance to the closest portal of the current stage, to check the world-map math in game:
+// standing on a portal this should be close to 0.
+std::string nearestPortalText() {
+    float px, pz;
+    if (!playerWorldPos(px, pz)) {
+        return "-";
+    }
+    float best = -1.0f;
+    for (size_t i = 0; i < portalCount(); ++i) {
+        PortalInfo info;
+        if (portalAt(i, info) && std::strncmp(info.stage, g_state.stage, 8) == 0) {
+            const float dx = info.x - px, dz = info.z - pz;
+            const float d = std::sqrt(dx * dx + dz * dz);
+            if (best < 0.0f || d < best) {
+                best = d;
+            }
+        }
+    }
+    return best < 0.0f ? std::string("ninguno en esta zona") : fmt::format("{:.0f} unidades", best);
+}
+
+std::string objectiveText() {
+    Marker m;
+    const char* name = nullptr;
+    currentObjective(m, name);
+    return name ? name : "-";
+}
+
 ModResult update(ModContext*, void*, ModError*) {
     if (g_pinCountText != 0) {
         std::string s = fmt::format("Marcas: {} en esta zona, {} en total", pinsInCurrentStage(), g_pins.count);
@@ -199,10 +255,15 @@ ModResult update(ModContext*, void*, ModError*) {
                 "Posición: ({:.0f}, {:.0f}, {:.0f})\n"
                 "Cámara (yaw): {:.1f}°\n"
                 "Evento: {} | Menú: {}\n"
-                "Oculta por: {}",
+                "Oculta por: {}\n"
+                "Mapa del mundo: {} | Pos: {}\n"
+                "Portal más cercano: {}\n"
+                "Entradas aprendidas: {} | Objetivo: {}",
                 g_state.stage[0] ? g_state.stage : "-", g_state.room, g_state.x, g_state.y, g_state.z,
                 yawDeg, g_state.eventRunning ? "sí" : "no", g_state.windowStatus,
-                g_state.hiddenReason[0] ? g_state.hiddenReason : "visible");
+                g_state.hiddenReason[0] ? g_state.hiddenReason : "visible",
+                worldmapReady() ? "ok" : "no cargado", worldPosText(), nearestPortalText(), entranceCount(),
+                objectiveText());
         }
         svc_ui->elem_set_text(mod_ctx, g_debugText, s.c_str());
     }

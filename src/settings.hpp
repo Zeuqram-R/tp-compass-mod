@@ -31,6 +31,12 @@ struct Settings {
     bool showPoes = true;
     bool showHeartPieces = true;
     bool showHowlingStones = true;
+    // World
+    bool showPois = true;          // villages, Castle Town, portals, learned entrances
+    bool showObjective = true;     // story objective (overworld only)
+    bool showObjectiveText = true; // objective name under the location name
+    bool showRemotePins = true;    // pins in other zones, from anywhere in the overworld
+    bool randomizerMode = false;   // playing the randomizer: generic item checks, no objective
     // Marker presentation
     bool showHeightArrows = true;  // up/down arrow when a marker is on another floor
     bool scaleByDistance = true;   // nearer markers are drawn bigger
@@ -62,6 +68,11 @@ struct SettingsHandles {
     ConfigVarHandle showHeartPieces = 0;
     ConfigVarHandle showHowlingStones = 0;
     ConfigVarHandle showHeightArrows = 0;
+    ConfigVarHandle showPois = 0;
+    ConfigVarHandle showObjective = 0;
+    ConfigVarHandle showObjectiveText = 0;
+    ConfigVarHandle showRemotePins = 0;
+    ConfigVarHandle randomizerMode = 0;
     ConfigVarHandle scaleByDistance = 0;
     ConfigVarHandle chestsNeedCompass = 0;
     ConfigVarHandle showLocation = 0;
