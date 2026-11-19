@@ -293,6 +293,41 @@ void villageIcon(float cx, float cy, float a, float s) {
     rect(cx - 1.0f * s, cy + 1.4f * s, cx + 1.0f * s, cy + 4.2f * s, withAlpha(kInk, 255.0f, a));  // door
 }
 
+// Zora's Domain: the cave-mouth silhouette, but filled with water and a leaping fish.
+void zoraIcon(float cx, float cy, float a, float s) {
+    outlined([&](GXColor c, float g) {
+        disc(cx, cy, 5.0f * s + g, c);
+        rect(cx - 5.0f * s - g, cy, cx + 5.0f * s + g, cy + 4.4f * s + g, c);
+    }, a);
+    const GXColor deep = withAlpha(kInk, 255.0f, a);
+    disc(cx, cy + 0.6f * s, 3.0f * s, deep);
+    rect(cx - 3.0f * s, cy + 0.6f * s, cx + 3.0f * s, cy + 4.4f * s, deep);
+    const GXColor white = withAlpha(kPaper, 255.0f, a);
+    // Waves along the bottom of the mouth.
+    for (int i = -1; i <= 1; ++i) {
+        disc(cx + i * 2.0f * s, cy + 3.6f * s, 1.0f * s, white);
+    }
+    rect(cx - 3.0f * s, cy + 3.6f * s, cx + 3.0f * s, cy + 4.4f * s, white);
+    // Fish: oval body + tail, jumping out of the water.
+    disc(cx - 0.3f * s, cy - 0.2f * s, 1.3f * s, white);
+    disc(cx + 0.7f * s, cy - 0.2f * s, 1.1f * s, white);
+    triangleUp(cx - 1.9f * s, cy + 1.2f * s, 0.9f * s, 2.2f * s, white);
+    disc(cx + 1.2f * s, cy - 0.5f * s, 0.35f * s, deep);  // eye
+}
+
+// Castle Town: a civic town-centre building (pediment, columns, steps).
+void townCenterIcon(float cx, float cy, float a, float s) {
+    outlined([&](GXColor c, float g) {
+        triangleUp(cx, cy - 2.0f * s + g, 5.6f * s + g, 3.2f * s + 2.0f * g, c);                   // pediment
+        rect(cx - 5.0f * s - g, cy - 2.0f * s - g, cx + 5.0f * s + g, cy - 1.0f * s + g, c);  // architrave
+        for (int i = -2; i <= 2; ++i) {
+            const float x = cx + i * 2.2f * s;
+            rect(x - 0.7f * s - g, cy - 1.0f * s - g, x + 0.7f * s + g, cy + 3.0f * s + g, c);  // columns
+        }
+        rect(cx - 5.6f * s - g, cy + 3.0f * s - g, cx + 5.6f * s + g, cy + 4.4f * s + g, c);  // steps
+    }, a);
+}
+
 void castleIcon(float cx, float cy, float a, float s) {
     outlined([&](GXColor c, float g) {
         rect(cx - 3.0f * s - g, cy - 2.0f * s - g, cx + 3.0f * s + g, cy + 4.2f * s + g, c);  // keep
@@ -406,6 +441,12 @@ void drawMarker(const Marker& m, float x, float y, float a) {
     case MarkerKind::Village:
         villageIcon(x, y, a, s);
         break;
+    case MarkerKind::ZoraDomain:
+        zoraIcon(x, y, a, s);
+        break;
+    case MarkerKind::TownCenter:
+        townCenterIcon(x, y, a, s);
+        break;
     case MarkerKind::Castle:
         castleIcon(x, y, a, s);
         break;
@@ -440,10 +481,12 @@ public:
     void draw() override;
     bool drawCompass = false;
     bool drawLocation = false;
+    bool drawObjective = false;
 
 private:
     void drawBar();
     void drawLocationName();
+    void drawObjectiveLine();
 };
 
 CompassDlst g_dlst;
@@ -460,6 +503,10 @@ void CompassDlst::draw() {
     }
     if (drawLocation) {
         drawLocationName();
+        port->setup2D();
+    }
+    if (drawObjective) {
+        drawObjectiveLine();
         port->setup2D();
     }
 }
@@ -479,13 +526,21 @@ void CompassDlst::drawLocationName() {
     font->setGX();
     drawText(font, name, x, baseline, kSize, 255, 255, 255, scaleAlpha(240.0f, 1.0f));
 
+}
+// "Objetivo: ..." in the bottom-left corner of the screen.
+void CompassDlst::drawObjectiveLine() {
     Marker objective;
-    const char* objectiveName = nullptr;
-    if (g_settings.showObjectiveText && currentObjective(objective, objectiveName) && objectiveName != nullptr) {
-        char line[64];
-        std::snprintf(line, sizeof(line), "Objetivo: %s", objectiveName);
-        drawText(font, line, x, baseline + kSize + 2.0f, 11.0f, 230, 150, 170, scaleAlpha(230.0f, 1.0f));
+    const char* name = nullptr;
+    JUTFont* font = mDoExt_getMesgFont();
+    if (font == nullptr || !currentObjective(objective, name) || name == nullptr) {
+        return;
     }
+    char line[64];
+    std::snprintf(line, sizeof(line), "Objetivo: %s", name);
+    const float x = mDoGph_gInf_c::getSafeMinXF() + static_cast<float>(g_settings.objectiveX);
+    const float baseline = mDoGph_gInf_c::getSafeMaxYF() - static_cast<float>(g_settings.objectiveY);
+    font->setGX();
+    drawText(font, line, x, baseline, 12.0f, 236, 160, 180, scaleAlpha(235.0f, 1.0f));
 }
 
 void CompassDlst::drawBar() {
@@ -601,7 +656,9 @@ void onMeterDrawPost(ModContext*, void*, void*, void*) {
     g_dlst.drawCompass = shouldDrawCompass();
     g_dlst.drawLocation = g_settings.showLocation && g_state.hasPlayer && !g_state.eventRunning &&
                           g_state.windowStatus == 0;
-    if (g_dlst.drawCompass || g_dlst.drawLocation) {
+    g_dlst.drawObjective = g_settings.showObjectiveText && g_state.hasPlayer && !g_state.eventRunning &&
+                           g_state.windowStatus == 0;
+    if (g_dlst.drawCompass || g_dlst.drawLocation || g_dlst.drawObjective) {
         dComIfGd_set2DOpa(&g_dlst);
     }
 }

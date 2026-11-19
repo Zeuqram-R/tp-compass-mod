@@ -15,6 +15,7 @@ struct Entrance {
     EntranceKind kind;
     uint8_t pad[2];
     float x, z;   // world map position
+    char fieldStage[8];  // overworld stage the entrance is in (empty if learned by an old version)
 };
 
 constexpr size_t kMaxEntrances = 96;

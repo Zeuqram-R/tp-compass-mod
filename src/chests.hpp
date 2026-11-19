@@ -12,6 +12,8 @@ enum class MarkerKind {
     HowlingStone,
     Item,       // randomizer: any freestanding item check
     Village,
+    ZoraDomain,
+    TownCenter,
     Castle,
     Dungeon,
     Portal,

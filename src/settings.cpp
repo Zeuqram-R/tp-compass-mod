@@ -65,6 +65,8 @@ ModResult registerSettings() {
     if ((r = regBool("showPois", d.showPois, &h.showPois)) != MOD_OK) return r;
     if ((r = regBool("showObjective", d.showObjective, &h.showObjective)) != MOD_OK) return r;
     if ((r = regBool("showObjectiveText", d.showObjectiveText, &h.showObjectiveText)) != MOD_OK) return r;
+    if ((r = regInt("objectiveX", d.objectiveX, &h.objectiveX)) != MOD_OK) return r;
+    if ((r = regInt("objectiveY", d.objectiveY, &h.objectiveY)) != MOD_OK) return r;
     if ((r = regBool("showRemotePins", d.showRemotePins, &h.showRemotePins)) != MOD_OK) return r;
     if ((r = regBool("randomizerMode", d.randomizerMode, &h.randomizerMode)) != MOD_OK) return r;
     if ((r = regBool("showBugs", d.showBugs, &h.showBugs)) != MOD_OK) return r;
@@ -102,6 +104,8 @@ void refreshSettings() {
     readBool(h.showPois, s.showPois);
     readBool(h.showObjective, s.showObjective);
     readBool(h.showObjectiveText, s.showObjectiveText);
+    readInt(h.objectiveX, s.objectiveX);
+    readInt(h.objectiveY, s.objectiveY);
     readBool(h.showRemotePins, s.showRemotePins);
     readBool(h.randomizerMode, s.randomizerMode);
     readBool(h.showBugs, s.showBugs);

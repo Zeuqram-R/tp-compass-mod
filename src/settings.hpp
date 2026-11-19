@@ -34,7 +34,9 @@ struct Settings {
     // World
     bool showPois = true;          // villages, Castle Town, portals, learned entrances
     bool showObjective = true;     // story objective (overworld only)
-    bool showObjectiveText = true; // objective name under the location name
+    bool showObjectiveText = true; // "Objetivo: ..." in the bottom-left corner
+    int64_t objectiveX = 16;       // from the left of the safe area
+    int64_t objectiveY = 10;       // text baseline, from the bottom of the safe area
     bool showRemotePins = true;    // pins in other zones, from anywhere in the overworld
     bool randomizerMode = false;   // playing the randomizer: generic item checks, no objective
     // Marker presentation
@@ -71,6 +73,8 @@ struct SettingsHandles {
     ConfigVarHandle showPois = 0;
     ConfigVarHandle showObjective = 0;
     ConfigVarHandle showObjectiveText = 0;
+    ConfigVarHandle objectiveX = 0;
+    ConfigVarHandle objectiveY = 0;
     ConfigVarHandle showRemotePins = 0;
     ConfigVarHandle randomizerMode = 0;
     ConfigVarHandle scaleByDistance = 0;

@@ -24,9 +24,11 @@ constexpr StagePoi kStagePois[] = {
     {"F_SP103", MarkerKind::Village},  // Ordon Village
     {"F_SP109", MarkerKind::Village},  // Kakariko Village
     {"F_SP128", MarkerKind::Village},  // Hidden Village
-    {"F_SP113", MarkerKind::Village},  // Zora's Domain
-    {"F_SP116", MarkerKind::Castle},   // Castle Town
+    {"F_SP113", MarkerKind::ZoraDomain},  // Zora's Domain
+    {"F_SP116", MarkerKind::TownCenter},  // Castle Town
 };
+
+constexpr float kNearEntranceDistance = 6000.0f;
 
 bool sameStage(const char* a, const char* b) {
     return std::strncmp(a, b, 8) == 0;
@@ -92,12 +94,25 @@ size_t collectPoiMarkers(Marker* out, size_t max) {
     }
     for (size_t i = 0; i < portalCount(); ++i) {
         PortalInfo info;
-        if (portalAt(i, info) && info.unlocked) {
+        // Only the portals of the map Link is in.
+        if (portalAt(i, info) && info.unlocked && sameStage(info.stage, g_state.stage)) {
             push(out, max, n, MarkerKind::Portal, info.x, info.z);
         }
     }
     for (size_t i = 0; i < entranceCount(); ++i) {
         const Entrance& e = entranceAt(i);
+        // Learned entrances only show up around them: in the overworld map they're in (or, for
+        // ones learned by an older version that didn't record it, when reasonably close).
+        if (e.fieldStage[0] != '\0') {
+            if (!sameStage(e.fieldStage, g_state.stage)) {
+                continue;
+            }
+        } else {
+            float b, d;
+            if (!worldBearing(e.x, e.z, b, d) || d > kNearEntranceDistance) {
+                continue;
+            }
+        }
         switch (e.kind) {
         case EntranceKind::Dungeon:
             push(out, max, n, MarkerKind::Dungeon, e.x, e.z);

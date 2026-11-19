@@ -157,11 +157,14 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
     svc_ui->pane_add_section(mod_ctx, panel, "Mundo");
     if ((r = addToggle(panel, "Puntos importantes", h.showPois)) != MOD_OK) return r;
     svc_ui->pane_add_text(mod_ctx, panel,
-        "Pueblos, Castle Town y portales de Midna desbloqueados. Las entradas de dungeons, "
-        "tiendas y Hyrule Castle aparecen después de entrar a ellas una vez.",
+        "Pueblos, Zora's Domain, Castle Town y los portales desbloqueados de la zona actual. "
+        "Las entradas de dungeons, tiendas y Hyrule Castle se aprenden al entrar una vez y "
+        "aparecen cuando estás en la zona de su entrada.",
         nullptr);
     if ((r = addToggle(panel, "Objetivo actual (círculo burgundy)", h.showObjective)) != MOD_OK) return r;
-    if ((r = addToggle(panel, "Nombre del objetivo bajo el lugar", h.showObjectiveText)) != MOD_OK) return r;
+    if ((r = addToggle(panel, "Texto del objetivo (abajo a la izquierda)", h.showObjectiveText)) != MOD_OK) return r;
+    if ((r = addNumber(panel, "Objetivo: distancia desde la izquierda", h.objectiveX, 0, 600, 4, "")) != MOD_OK) return r;
+    if ((r = addNumber(panel, "Objetivo: distancia desde abajo", h.objectiveY, 0, 440, 2, "")) != MOD_OK) return r;
     if ((r = addToggle(panel, "Marcas de otras zonas", h.showRemotePins)) != MOD_OK) return r;
     if ((r = addToggle(panel, "Estoy jugando randomizer", h.randomizerMode)) != MOD_OK) return r;
     svc_ui->pane_add_text(mod_ctx, panel,
